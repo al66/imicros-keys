@@ -1,22 +1,22 @@
 "use strict";
 
 const { ServiceBroker } = require("moleculer");
-const { Keys } = require("../index");
+const { Master } = require("../index");
+const crypto = require("crypto");
+const fs = require("fs");
 
 const timestamp = Date.now();
 
-let expired;
-//const _Date = Date;
-//global.Date = _Date;
-global.Date.now = () => { return expired ? timestamp + ( 1000 * 60 * 60 * 24 * 31 ) : timestamp ; };
-/*
-global.Date = jest.fn(() => timestamp); //expired ? timestamp + ( 1000 * 60 * 60 * 24 * 31 ) : timestamp
-global.Date.UTC = _Date.UTC;
-global.Date.parse = _Date.parse;
-global.Date.now = _Date.now;
-*/
+process.env.MASTER_TOKEN = crypto.randomBytes(32).toString("hex");
 
-describe("Test keys service", () => {
+// delete init.conf if exists from earlier runs 
+fs.unlinkSync("init.conf");
+
+const expirationDays = 20;
+let expired;
+global.Date.now = () => { return expired ? timestamp + ( 1000 * 60 * 60 * 24 * ( expirationDays + 1) ) : timestamp ; };
+
+describe("Test master/key service", () => {
 
     let broker, service;
     beforeAll(() => {
@@ -32,15 +32,16 @@ describe("Test keys service", () => {
                 logger: console,
                 logLevel: "info" //"debug"
             });
-            service = await broker.createService(Keys, Object.assign({ 
-                name: "keys", 
-                settings: { 
+            service = await broker.createService(Master, Object.assign({ 
+                name: "master_" + timestamp, 
+                settings: {
                     redis: {
                         port: process.env.REDIS_PORT || 6379,
                         host: process.env.REDIS_HOST || "127.0.0.1",
                         password: process.env.REDIS_AUTH || "",
                         db: process.env.REDIS_DB || 0,
-                    }
+                    },
+                    expirationDays: 20
                 }
             }));
             await broker.start();
@@ -48,8 +49,83 @@ describe("Test keys service", () => {
         });
 
     });
+
+    describe("Test master", () => {
+        
+        let token, shares;
+        
+        it("it should init the master", async () => {
+            let params = {
+                token: process.env.MASTER_TOKEN
+            };
+            let res = await broker.call("master_" + timestamp + ".init", params);
+            expect(res.token).toBeDefined();
+            expect(res.shares).toBeDefined();
+            expect(res.shares.length).toEqual(5);
+            token = res.token;
+            shares = res.shares;
+        });
+
+        it("it should commit the first share", async () => {
+            let params = {
+                token: token,
+                share: shares[0]
+            };
+            let res = await broker.call("master_" + timestamp + ".unseal", params);
+            expect(res.received).toEqual(1);
+        });
+
+        it("it should allow double commits", async () => {
+            let params = {
+                token: token,
+                share: shares[0]
+            };
+            let res = await broker.call("master_" + timestamp + ".unseal", params);
+            expect(res.received).toEqual(1);
+        });
+
+        it("it should throw Error: unvalid token", async () => {
+            let params = {
+                token: "wrong token",
+                share: shares[0]
+            };
+            await broker.call("master_" + timestamp + ".unseal", params).catch(err => {
+                expect(err instanceof Error).toBe(true);
+                expect(err.message).toEqual("unvalid token");
+            });
+        });
+
+        it("it should commit the second share", async () => {
+            let params = {
+                token: token,
+                share: shares[2]
+            };
+            let res = await broker.call("master_" + timestamp + ".unseal", params);
+            expect(res.received).toEqual(2);
+        });
+        
+        it("it should throw Error: this method can only be called once", async () => {
+            let params = {
+                token: process.env.MASTER_TOKEN
+            };
+            await broker.call("master_" + timestamp + ".init", params).catch(err => {
+                expect(err instanceof Error).toBe(true);
+                expect(err.message).toEqual("this method can only be called once");
+            });
+        });
+
+        it("it should unseal the master", async () => {
+            let params = {
+                token: token,
+                share: shares[4]
+            };
+            let res = await broker.call("master_" + timestamp + ".unseal", params);
+            await broker.waitForServices("keys");
+            expect(res.received).toEqual(3);
+        });
+    });
     
-    describe("Test getOek", () => {
+    describe("Test keys", () => {
 
         let opts, keyA, keyB, keyC, keyD;
         
@@ -77,6 +153,7 @@ describe("Test keys service", () => {
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
+                expect(res.id).toBeDefined();
                 expect(res.key).toBeDefined();
                 keyA = res;
             });
@@ -89,6 +166,7 @@ describe("Test keys service", () => {
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
+                expect(res.id).toBeDefined();
                 expect(res.key).toBeDefined();
                 expect(res).toEqual(keyA);
             });
@@ -102,6 +180,7 @@ describe("Test keys service", () => {
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
+                expect(res.id).toBeDefined();
                 expect(res.key).toBeDefined();
                 expect(res).toEqual(keyA);
             });
@@ -115,6 +194,7 @@ describe("Test keys service", () => {
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
+                expect(res.id).toBeDefined();
                 expect(res.key).toBeDefined();
                 keyB = res;
             });
@@ -128,6 +208,7 @@ describe("Test keys service", () => {
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
+                expect(res.id).toBeDefined();
                 expect(res.key).toBeDefined();
                 expect(res).toEqual(keyB);
             });
@@ -142,6 +223,7 @@ describe("Test keys service", () => {
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
+                expect(res.id).toBeDefined();
                 expect(res.key).toBeDefined();
                 expect(res).toEqual(keyB);
             });
@@ -154,6 +236,7 @@ describe("Test keys service", () => {
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
+                expect(res.id).toBeDefined();
                 expect(res.key).toBeDefined();
                 keyC = res;
             });
@@ -166,6 +249,7 @@ describe("Test keys service", () => {
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
+                expect(res.id).toBeDefined();
                 expect(res.key).toBeDefined();
                 expect(res).toEqual(keyC);
                 expect(res).not.toEqual(keyA);
@@ -179,6 +263,7 @@ describe("Test keys service", () => {
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
+                expect(res.id).toBeDefined();
                 expect(res.key).toBeDefined();
                 expect(res).toEqual(keyA);
             });
@@ -192,6 +277,7 @@ describe("Test keys service", () => {
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
+                expect(res.id).toBeDefined();
                 expect(res.key).toBeDefined();
                 keyD = res;
                 expect(res).not.toEqual(keyA);
@@ -205,12 +291,12 @@ describe("Test keys service", () => {
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
+                expect(res.id).toBeDefined();
                 expect(res.key).toBeDefined();
                 expect(res).toEqual(keyD);
             });
             
         });
-
         
     });
     

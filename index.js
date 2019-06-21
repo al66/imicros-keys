@@ -4,5 +4,6 @@
 "use strict";
 
 module.exports = {
-    Keys: require("./lib/keys")
+    Keys: require("./lib/keys"),
+    Master: require("./lib/master")
 };
