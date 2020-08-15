@@ -6,11 +6,16 @@ const crypto = require("crypto");
 const fs = require("fs");
 
 const timestamp = Date.now();
+const serviceCalling = "my.service";
 
 process.env.MASTER_TOKEN = crypto.randomBytes(32).toString("hex");
 
-// delete init.conf if exists from earlier runs 
-fs.unlinkSync("init.conf");
+// delete init.conf if exists from earlier runs
+try {
+    fs.unlinkSync("init.conf");
+} catch (err) {
+    // ok
+}
 
 const expirationDays = 20;
 let expired;
@@ -135,9 +140,7 @@ describe("Test master/key service", () => {
                 meta: { 
                     acl: {
                         accessToken: "this is the access token",
-                        owner: {
-                            id: `g1-${timestamp}`
-                        }
+                        ownerId: `g1-${timestamp}`
                     }, 
                     user: { 
                         id: `1-${timestamp}` , 
@@ -149,7 +152,7 @@ describe("Test master/key service", () => {
         
         it("it should create default key of 1. owner", () => {
             let params = {
-                service: "my.service"
+                service: serviceCalling
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
@@ -162,7 +165,7 @@ describe("Test master/key service", () => {
 
         it("it should get default key of 1. owner", () => {
             let params = {
-                service: "my.service"
+                service: serviceCalling
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
@@ -175,7 +178,7 @@ describe("Test master/key service", () => {
 
         it("it should get key of 1. owner by id", () => {
             let params = {
-                service: "my.service",
+                service: serviceCalling,
                 id: keyA.id
             };
             return broker.call("keys.getOek", params, opts).then(res => {
@@ -188,9 +191,9 @@ describe("Test master/key service", () => {
         });
 
         it("it should create default key of 2. owner", () => {
-            opts.meta.acl.owner.id = `g2-${timestamp}`;
+            opts.meta.acl.ownerId = `g2-${timestamp}`;
             let params = {
-                service: "my.service"
+                service: serviceCalling
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
@@ -202,9 +205,9 @@ describe("Test master/key service", () => {
         });
 
         it("it should get default key of 2. owner", () => {
-            opts.meta.acl.owner.id = `g2-${timestamp}`;
+            opts.meta.acl.ownerId = `g2-${timestamp}`;
             let params = {
-                service: "my.service"
+                service: serviceCalling
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
@@ -216,9 +219,9 @@ describe("Test master/key service", () => {
         });
 
         it("it should get key of 2. owner by id", () => {
-            opts.meta.acl.owner.id = `g2-${timestamp}`;
+            opts.meta.acl.ownerId = `g2-${timestamp}`;
             let params = {
-                service: "my.service",
+                service: serviceCalling,
                 id: keyB.id
             };
             return broker.call("keys.getOek", params, opts).then(res => {
@@ -259,7 +262,7 @@ describe("Test master/key service", () => {
 
         it("it should get again default key of 1. owner 1. service", () => {
             let params = {
-                service: "my.service"
+                service: serviceCalling
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
@@ -273,7 +276,7 @@ describe("Test master/key service", () => {
         it("it should create a new default key of 1. owner 1. service", () => {
             expired = true;
             let params = {
-                service: "my.service"
+                service: serviceCalling
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
@@ -287,7 +290,7 @@ describe("Test master/key service", () => {
 
         it("it should get new default key of 1. owner 1. service", () => {
             let params = {
-                service: "my.service"
+                service: serviceCalling
             };
             return broker.call("keys.getOek", params, opts).then(res => {
                 expect(res).toBeDefined();
