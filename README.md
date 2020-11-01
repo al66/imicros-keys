@@ -38,8 +38,9 @@ broker.start();
 
 ```
 The keys service is not started directly - the master service will create it after unsealing.
-After the first start call <code>master.init</code>code> to generate a new master key and retrieve the secret shares and the verifcation hash.
-Keep the shares as well as the verification hash very save as the master key cannot be changed!
+After the first start call <code>master.init</code> to generate a new master key and retrieve the secret shares and the verifcation hash.
+
+**Keep the shares as well as the verification hash very save as the master key cannot be changed!**
 
 The following steps must be done after each restart:
 - set the verfication hash for each sealed node with <code>master.setVerifyHash</code>. Alternatively you can set the environment variable <code>process.env.MASTER_HASH</code>, as you know it after the first init call.
