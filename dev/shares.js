@@ -1,8 +1,28 @@
 const secrets = require("secrets.js-grempe");
+const crypto = require("crypto");
 
 // generate a 512-bit key
 let key = secrets.random(512); // => key is a hex string
- 
+
+function hashKey (key) {
+    try {
+        let salt = crypto.randomBytes(16);
+        let hash = crypto.pbkdf2Sync(key, salt, 100000, 32, "sha512");
+        let combined = Buffer.alloc(hash.length + salt.length + 8);
+        // include the size of the salt so that we can, during verification,
+        // figure out how much of the hash is salt
+        combined.writeUInt32BE(salt.length, 0, true);
+        // similarly, include the iteration count
+        combined.writeUInt32BE(100000, 4, true);
+        salt.copy(combined, 8);
+        hash.copy(combined, salt.length + 8);
+        let combinedStr = combined.toString("hex");
+        return combinedStr;
+    } catch (err) {
+        throw new Error("Failed to create hash");
+    }
+}
+
 // split into 10 shares with a threshold of 5
 let shares = secrets.share(key, 10, 5);
 let copy = [];
@@ -17,15 +37,17 @@ shares.map(share => {
 // combine 4 shares
 let comb = secrets.combine( shares.slice(0,4) );
 console.log(comb === key); // => false
- 
+
 // combine 5 shares
 comb = secrets.combine( shares.slice(4,9) );
 console.log(comb);
 console.log(comb === key); // => true
- 
+let hash = hashKey(comb);
+
 // combine 5 shares of the copied array
 comb = secrets.combine( copy.slice(4,9) );
 console.log(comb === key); // => true
+console.log(hash === hashKey(comb)); // true
  
 // combine ALL shares
 comb = secrets.combine( shares );

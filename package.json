@@ -1,15 +1,15 @@
 {
   "name": "imicros-keys",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "author": "Andreas Leinen <andreas.leinen@imicros.de> (www.imicros.de)",
   "license": "MIT",
   "description": "Moleculer service for the imicros key store based on Redis database ",
   "main": "index.js",
   "scripts": {
     "lint": "eslint . --ext .js,.jsx",
-    "test": "jest --coverage --no-cache --silent",
-    "test-local": "jest --coverage --no-cache --config=local.js --silent",
-    "test-master": "jest --coverage --no-cache --config=local.js"
+    "test": "jest --coverage --no-cache --silent --detectOpenHandles",
+    "test-local": "jest --coverage --no-cache --config=local.js --silent  --detectOpenHandles",
+    "test-master": "jest --coverage --no-cache --config=local.js --detectOpenHandles"
   },
   "jest": {
     "collectCoverageFrom": [

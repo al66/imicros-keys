@@ -4,6 +4,7 @@ const { ServiceBroker } = require("moleculer");
 const { Master } = require("../index");
 const crypto = require("crypto");
 const fs = require("fs");
+const util = require("util");
 
 const timestamp = Date.now();
 const serviceCalling = "my.service";
@@ -55,7 +56,6 @@ describe("Test master/key service", () => {
     brokerB.createService({ name: "nodeB" });
         
 
-    
     // let broker, service, brokerA, brokerB;
     beforeAll(async () => {
         // Start broker
@@ -65,16 +65,16 @@ describe("Test master/key service", () => {
         await brokerA.waitForServices([serviceNameMaster,"nodeA"]);
         await brokerB.waitForServices([serviceNameMaster,"nodeB"]);
         await broker.waitForServices([serviceNameMaster,"nodeA","nodeB"]);
-    });
+    }, 10000);
     
     afterAll(async () => {
         // Stop broker
-        await Promise.all([broker.stop(), brokerA.stop(), brokerB.stop()]);
-    });
+        await Promise.all([brokerA.stop(), brokerB.stop(), broker.stop()]);
+    }, 10000);
     
     describe("Test master", () => {
         
-        let shares, verifyHash;
+        let shares, verifyHash, part;
         
         it("it should return 3 nodeID's of sealed (getSealed)", async () => {
             let params = {
@@ -96,8 +96,32 @@ describe("Test master/key service", () => {
             expect(res.shares.length).toEqual(5);
             expect(res.verifyHash).toBeDefined();
             shares = res.shares;
-            verifyHash = res.verifyHash;
+            part = shares.slice(2,5);
+            // verifyHash = res.verifyHash;
+            // console.log(res);
+        });
+
+        it("it should recreate the hash", async () => {
+            let params = {
+                token: process.env.MASTER_TOKEN,
+                shares: part
+            };
+            let res = await broker.call(serviceNameMaster + ".getVerifyHash", params);
+            expect(res.verifyHash).toBeDefined();
             console.log(res);
+            verifyHash = res.verifyHash;
+        });
+
+        it("it should create a new share", async () => {
+            let params = {
+                token: process.env.MASTER_TOKEN,
+                index: 2,
+                shares: part
+            };
+            let res = await broker.call(serviceNameMaster + ".newShare", params);
+            expect(res.share).toBeDefined();
+            console.log(res);
+            shares[2] = res.share;
         });
 
         it("it should set the verifyHash", async () => {
@@ -170,9 +194,9 @@ describe("Test master/key service", () => {
                 share: shares[4]
             };
             let res = await broker.call(serviceNameMaster + ".unseal", params);
-            await broker.waitForServices(serviceNameKeys);
+            await broker.waitForServices([serviceNameKeys]);
             expect(res.received).toEqual(3);
-        });
+        },10000);
         
         it("it should return 2 nodeID's (getSealed)", async () => {
             let params = {
@@ -225,9 +249,9 @@ describe("Test master/key service", () => {
                 share: shares[4]
             };
             let res = await broker.call(serviceNameMaster + ".unseal", params);
-            await broker.waitForServices(serviceNameKeys);
+            await brokerA.waitForServices([serviceNameKeys]).delay(1000);
             expect(res.received).toEqual(3);
-        });
+        },10000);
         
         it("it should return 1 nodeID (getSealed)", async () => {
             let params = {
@@ -252,7 +276,7 @@ describe("Test master/key service", () => {
             // Ensure services & all brokers are available
             await broker.waitForServices([serviceNameKeys]);
             await brokerB.waitForServices([serviceNameKeys]);
-        });
+        },10000);
         
         beforeEach(() => {
             expired = null;
@@ -308,6 +332,16 @@ describe("Test master/key service", () => {
                 expect(res).toEqual(keyA);
             });
             
+        });
+
+        it("it should throw error due to not existing id", () => {
+            let params = {
+                service: serviceCalling,
+                id: "not existing"
+            };
+            return brokerB.call(serviceNameKeys  +  ".getOek", params, opts).catch(err => {
+                expect(err.message).toEqual("failed to retrieve key");
+            });
         });
 
         it("it should create default key of 2. owner", () => {
@@ -417,6 +451,79 @@ describe("Test master/key service", () => {
                 expect(res.id).toBeDefined();
                 expect(res.key).toBeDefined();
                 expect(res).toEqual(keyD);
+            });
+            
+        });
+
+    });
+
+    describe("Test admin", () => {
+
+        let opts;
+
+        beforeAll(() => {});
+        
+        beforeEach(() => {
+            opts = { 
+                meta: { 
+                    acl: {
+                        accessToken: "this is the access token",
+                        ownerId: "admin",
+                        core: true
+                    }, 
+                    user: { 
+                        id: `1-${timestamp}` , 
+                        email: `1-${timestamp}@host.com` }
+                } 
+            };
+        });
+        
+        
+        it("it should return known owners", () => {
+            let params = {
+            };
+            return broker.call(serviceNameKeys  +  ".getOwners", params, opts).then(res => {
+                expect(res).toBeDefined();
+                expect(res).toEqual(expect.arrayContaining([`g1-${timestamp}`,`g2-${timestamp}`]));
+            });
+        });
+
+        it("it should remove an owner", () => {
+            let params = {
+                owner: `g1-${timestamp}`
+            };
+            return broker.call(serviceNameKeys  +  ".deleteOwner", params, opts).then(res => {
+                expect(res).toBeDefined();
+                console.log(util.inspect(res,false,9,true));
+            });
+        });
+        
+        it("it should return left owners", () => {
+            let params = {
+            };
+            return broker.call(serviceNameKeys  +  ".getOwners", params, opts).then(res => {
+                expect(res).toBeDefined();
+                expect(res).not.toEqual(expect.arrayContaining([`g1-${timestamp}`]));
+                expect(res).toEqual(expect.arrayContaining([`g2-${timestamp}`]));
+            });
+        });
+
+        it("it should remove the second owner", () => {
+            let params = {
+                owner: `g2-${timestamp}`
+            };
+            return broker.call(serviceNameKeys  +  ".deleteOwner", params, opts).then(res => {
+                expect(res).toBeDefined();
+                console.log(util.inspect(res,false,9,true));
+            });
+        });
+        
+        it("it should return left owners", () => {
+            let params = {
+            };
+            return broker.call(serviceNameKeys  +  ".getOwners", params, opts).then(res => {
+                expect(res).toBeDefined();
+                expect(res).not.toEqual(expect.arrayContaining([`g2-${timestamp}`]));
             });
             
         });

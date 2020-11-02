@@ -113,10 +113,10 @@ broker.call("master.unseal", param).then(res => {
 })
 ```
 #### getOek
-Called by other services to retrieve their own secret.
-It is called w/o ID for getting the default key - e.g. for encrypting.
-After reaching the exiry date (according expiration days in settings) a new default key is created.
-The retrieved id must be saved with the encrypted object to retrieve the correct key for decryption.
+This method is called by other services to obtain their private key for encryption.
+It is called without ID to get the default key for encryption.
+After reaching the expiration date (according to the expiration days in the settings) a new default private key is generated.
+The retrieved ID has to be stored with the encrypted object and has to be given with the new retrieval to get the correct key for decryption.
 ```js
 let params = {
     service: "my service",                      // name of my service
