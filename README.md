@@ -9,7 +9,7 @@
 $ npm install imicros-keys --save
 ```
 ## Dependencies
-Requires a running Redis Instance.
+Requires a running Cassandra Instance.
 
 # Usage Keys Service
 Set the master token as environment variable
@@ -51,7 +51,6 @@ Services can now retrieve their secret keys with calling <code>keys.getOek</code
 ### Actions master service
 ```
 init { token } => { shares, verifyHash } 
-setVerifyHash { nodeID, token, verifyHash } => { verifyHash } 
 unseal { nodeID, token, share } => { received }
 isSealed => true|false
 getSealed { token } => { sealed:Array<String> }
@@ -60,7 +59,8 @@ getMasterKey { token } => masterKey  - only local calls!
 ### Actions key service
 ```
 getOek { service, id } => { id, key }
-owners => [ owner id's ]
+getSek { token, service, id } => { id, key }
+deleteKeys { owner} => backup: { owner, services: { [service]:[keychain] }}
 ```
 #### init
 Called only once for all key services to retrieve shares and the verification hash.
@@ -84,18 +84,6 @@ let param = {
 }
 broker.call("master.getSealed", param).then(res => {
     // res.sealed -> array of node ID's
-})
-```
-#### setVerifyHash
-Set the verification hash for sealed nodes. Must be called for each sealed node with the related node ID.
-```js
-let param = {
-    nodeID: "...",          // as retrieved by master.getSealed
-    token: "my secret master token",
-    verifyHash: "..."       // as retrived by master.init
-}
-broker.call("master.setVerifyHash", param).then(res => {
-    // res.verifyHash -> in case of success: same value as transferred
 })
 ```
 #### unseal
