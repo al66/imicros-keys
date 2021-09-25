@@ -43,7 +43,7 @@
     "ioredis": "^4.27.9",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.21",
-    "moleculer": "^0.14.16",
+    "moleculer": "^0.14.17",
     "secrets.js-grempe": "^2.0.0",
     "uuid": "^8.3.2"
   }
