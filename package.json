@@ -9,7 +9,8 @@
     "lint": "eslint . --ext .js,.jsx",
     "test": "jest --coverage --no-cache --silent --detectOpenHandles",
     "test-local": "jest --coverage --no-cache --config=local.js --silent  --detectOpenHandles",
-    "test-master": "jest --coverage --no-cache --config=local.js --detectOpenHandles"
+    "test-master": "jest test/master.spec.js --coverage --no-cache --config=local.js --detectOpenHandles",
+    "test-unseal": "jest test/unseal.spec.js --coverage --no-cache --config=local.js --detectOpenHandles"
   },
   "jest": {
     "collectCoverageFrom": [
@@ -31,10 +32,13 @@
   ],
   "devDependencies": {
     "coveralls": "^3.1.1",
+    "imicros-gateway": "0.0.1",
     "jest": "^26.6.3",
-    "nats": "^1.4.12"
+    "nats": "^1.4.12",
+    "supertest": "^6.1.6"
   },
   "dependencies": {
+    "axios": "^0.21.4",
     "cassandra-driver": "^4.6.3",
     "ioredis": "^4.27.9",
     "jsonwebtoken": "^8.5.1",

@@ -5,5 +5,6 @@
 
 module.exports = {
     Keys: require("./lib/keys"),
-    Master: require("./lib/master")
+    Master: require("./lib/master"),
+    Unseal: require("./lib/unseal")
 };

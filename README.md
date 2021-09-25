@@ -38,34 +38,48 @@ broker.start();
 
 ```
 The keys service is not started directly - the master service will create it after unsealing.
-After the first start call <code>master.init</code> to generate a new master key and retrieve the secret shares and the verifcation hash.
+After the first start call <code>master.init</code> to generate a new master key and retrieve the secret shares.
 
-**Keep the shares as well as the verification hash very save as the master key cannot be changed!**
+**Keep the shares very save as the master key cannot be changed!**
 
-The following steps must be done after each restart:
-- set the verfication hash for each sealed node with <code>master.setVerifyHash</code>. Alternatively you can set the environment variable <code>process.env.MASTER_HASH</code>, as you know it after the first init call.
-- call <code>master.unseal</code> with the different shares until the required number of shares is reached
+The following steps must be done after each restart with each single share:
+- call <code>master.getToken</code> with your share to receive a token
+- call <code>master.getSealed</code> with the received token to get the sealed nodes
+- call <code>master.unseal</code> for each sealed node with your share
 When the required number of shares is reached the node is unsealed and the keys service is started automatically.
+
+The class unseal can be used to automate this process with a remote running daemon per share.
+The daemon requires three environment variables:
+```
+process.env.HOST = "https://my-host"  // can include a port number e.g. https://my-host:3000
+process.env.SHARE = "e1b4cb2904ba87e2bc49cf1c09c886d3d14cf6ec93652162393bd0254d066843fa966c04a1d754196bb8992bd268700215ec3b6fcf4b1881c6ff79b1288533f5843bc8388bb5645de96e4937d156fd57d8169f58278b7fb1d3405b322f8ce8fa09b243ac70e1f5a38ca314b2aa5d7a1565bd5aeb756ca97197a7a9656121328b2506c0a479340ab1fbbce67364e4a8353107f792e428e776bdf0c0e2e7666e9efa62fd4d59afcd418fbd37f53cb49bc3011f64c6c070fe9a97762b0c27172ad7c1a070189ee2924bc78fda6b716ceadc1a54ff83954304a24e34bcd02fa3db2356236167c17333fa0eb0562f9e52f4d83942fdec928b4f0bed66d23ee24366c1"  // one of the shares created with the init action
+process.env.SERVICE = "master"
+```
+To run the daemon call (or use nodemon or pm2)
+```
+node /lib/unseal
+```
+
 
 Services can now retrieve their secret keys with calling <code>keys.getOek</code>.
 ### Actions master service
 ```
-init { token } => { shares, verifyHash } 
+init { token } => { shares } 
 unseal { nodeID, token, share } => { received }
 isSealed => true|false
-getSealed { token } => { sealed:Array<String> }
+getSealed { token } => { unsealed:Array<String>, sealed:Array<String> }
 getMasterKey { token } => masterKey  - only local calls!
 ```
 ### Actions key service
 ```
 getOek { service, id } => { id, key }
 getSek { token, service, id } => { id, key }
-deleteKeys { owner} => backup: { owner, services: { [service]:[keychain] }}
+deleteKeys { owner } => backup: { owner, services: { [service]:[keychain] }}
 ```
 #### init
-Called only once for all key services to retrieve shares and the verification hash.
+Called only once for all key services to retrieve shares.
 It generates a new master key and split it into the secret shares. 
-These shares and the verification hash must be used for unsealing all running key services.
+These shares must be used for unsealing all running key services.
 Never change them in a running system with existing keys in the database! 
 ```js
 let param = {
@@ -73,14 +87,26 @@ let param = {
 }
 broker.call("master.init", param).then(res => {
     // res.shares -> array of secret shares
-    // res.verifyHash -> combined hash/salt
+})
+```
+#### getToken
+Get a token for a share to call getSealed. 
+The token is just used to avoid transfering the share in each call. Therefore should be called only once at the start of the unsealing program.
+Important note: For security reasons you will get always a token back - also, if the share is unvalid.
+```js
+let param = {
+    share: "..."            // as retrived by master.init
+}
+broker.call("master.getToken", param).then(res => {
+    // res.token -> token to be used for calling getSealed
 })
 ```
 #### getSealed
 Returns an array of node ID's of sealed nodes. If all nodes are unsealed, the array is empty.
+Important note: If the token is unvalid due to a wrong share in action getToken you will get an empty array back.
 ```js
 let param = {
-    token: "my secret master token"
+    token: "my secret token retrieved by calling getToken"
 }
 broker.call("master.getSealed", param).then(res => {
     // res.sealed -> array of node ID's
@@ -93,7 +119,6 @@ When the required number is reached the node is automatically unsealed and the k
 ```js
 let param = {
     nodeID: "...",          // as retrieved by master.getSealed
-    token: "my secret master token",
     share: "..."            // as retrived by master.init
 }
 broker.call("master.unseal", param).then(res => {
