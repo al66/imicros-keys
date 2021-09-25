@@ -25,11 +25,10 @@ broker = new ServiceBroker({
 });
 broker.createService(Master, Object.assign({ 
     settings: {
-        redis: {
-            port: process.env.REDIS_PORT || 6379,
-            host: process.env.REDIS_HOST || "127.0.0.1",
-            password: process.env.REDIS_AUTH || "",
-            db: process.env.REDIS_DB || 0,
+        cassandra: {
+            contactPoints: process.env.CASSANDRA_CONTACTPOINTS || "127.0.0.1", 
+            datacenter: process.env.CASSANDRA_DATACENTER || "datacenter1", 
+            keyspace: process.env.CASSANDRA_KEYSPACE || "imicros_keys" 
         },
         expirationDays: 30  // rotate key after 30 days
     }
