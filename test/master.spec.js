@@ -3,7 +3,6 @@
 const { ServiceBroker } = require("moleculer");
 const { Master } = require("../index");
 const crypto = require("crypto");
-const fs = require("fs");
 // const util = require("util");
 
 const timestamp = Date.now();
@@ -14,13 +13,6 @@ const serviceNameKeys = "keys1";
 process.env.MASTER_TOKEN = crypto.randomBytes(32).toString("hex");
 process.env.SERVICE_TOKEN = crypto.randomBytes(32).toString("hex");
 
-// delete init.conf if exists from earlier runs
-try {
-    fs.unlinkSync("init.conf");
-} catch (err) {
-    // ok
-}
-
 const MasterService = Object.assign(Master, { 
     name: serviceNameMaster,
     settings: {
@@ -28,7 +20,9 @@ const MasterService = Object.assign(Master, {
         cassandra: {
             contactPoints: process.env.CASSANDRA_CONTACTPOINTS || "127.0.0.1", 
             datacenter: process.env.CASSANDRA_DATACENTER || "datacenter1", 
-            keyspace: process.env.CASSANDRA_KEYSPACE || "imicros_flow" 
+            keyspace: process.env.CASSANDRA_KEYSPACE || "imicros_keys" ,
+            keyTable: "keys_test_" + timestamp,
+            hashTable: "hashes_test_" + timestamp
         },
         expirationDays: 20
     }
@@ -231,6 +225,16 @@ describe("Test master/key service", () => {
             expect(res.sealed.length).toBeLessThan(3);
             expect(res.sealed.length).toEqual(1);
             // console.log(res);
+        });
+
+        it("it should again throw Error: master is already unsealed", async () => {
+            let params = {
+                token: process.env.MASTER_TOKEN
+            };
+            await broker.call(serviceNameMaster + ".init", params).catch(err => {
+                expect(err instanceof Error).toBe(true);
+                expect(err.message).toEqual("master is already unsealed");
+            });
         });
         
     });

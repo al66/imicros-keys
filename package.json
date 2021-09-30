@@ -1,6 +1,6 @@
 {
   "name": "imicros-keys",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Andreas Leinen <andreas.leinen@imicros.de> (www.imicros.de)",
   "license": "MIT",
   "description": "Moleculer service for the imicros key store based on Cassandra database ",
