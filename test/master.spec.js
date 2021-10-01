@@ -2,7 +2,7 @@
 
 const { ServiceBroker } = require("moleculer");
 const { Master } = require("../index");
-const crypto = require("crypto");
+// const crypto = require("crypto");
 // const util = require("util");
 
 const timestamp = Date.now();
@@ -10,8 +10,8 @@ const serviceCalling = "my.service";
 const serviceNameMaster = "master1";
 const serviceNameKeys = "keys1";
 
-process.env.MASTER_TOKEN = crypto.randomBytes(32).toString("hex");
-process.env.SERVICE_TOKEN = crypto.randomBytes(32).toString("hex");
+process.env.MASTER_TOKEN = "074e48c8e3c0bc19f9e22dd7570037392"; //crypto.randomBytes(32).toString("hex");
+process.env.SERVICE_TOKEN = "c1cd91053fca873a4cb7b2549ec1010a"; // crypto.randomBytes(32).toString("hex");
 
 const MasterService = Object.assign(Master, { 
     name: serviceNameMaster,

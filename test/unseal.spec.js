@@ -3,12 +3,13 @@
 const { ServiceBroker } = require("moleculer");
 const { Gateway } = require("imicros-gateway");
 const { Unseal } = require("../index");
-const crypto = require("crypto");
+// const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 // const util = require("util");
 
-const share = crypto.randomBytes(256).toString("hex");
-const secret = crypto.randomBytes(40).toString("hex");
+const share = 
+"803627be857d5d53551e518ebacf626a3b24e4b3a48e73a92bffaf3f082aa8411047fceedc4ebc2575177d006da949cedd4d45013adce30017af7c1e6aa35287684e82ea19b8f327f21c0ac9577951618af"; // crypto.randomBytes(256).toString("hex");
+const secret = "c1cd91053fca873a4cb7b2549ec1010a9a1a4c2a"; // crypto.randomBytes(40).toString("hex");
 let exp = new Date();
 exp.setDate(new Date().getDate() + 60);
 const token = jwt.sign({ any: "data", exp: Math.floor(exp.getTime() / 1000)}, secret);
