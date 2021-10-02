@@ -8,7 +8,7 @@
   "scripts": {
     "lint": "eslint . --ext .js,.jsx",
     "test": "jest --coverage --no-cache --silent --detectOpenHandles",
-    "test-travis": "jest --coverage --no-cache --config=travis.js --silent --detectOpenHandles",
+    "test-travis": "jest --coverage --no-cache --config=travis.js --detectOpenHandles",
     "test-local": "jest --coverage --no-cache --config=local.js --silent  --detectOpenHandles",
     "test-master": "jest test/master.spec.js --coverage --no-cache --config=local.js --detectOpenHandles",
     "test-unseal": "jest test/unseal.spec.js --coverage --no-cache --config=local.js --detectOpenHandles"
