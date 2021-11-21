@@ -241,7 +241,7 @@ describe("Test master/key service", () => {
     
     describe("Test keys", () => {
 
-        let opts, keyA, keyB, keyC, keyD;
+        let opts, keyA, keyB, keyC, keyD, encrypted;
 
         beforeAll(async () => {
             // Ensure services & all brokers are available
@@ -485,6 +485,109 @@ describe("Test master/key service", () => {
             
         });
        
+        it("it should encrypt an object", () => {
+            let params = {
+                token: `${serviceCalling}${timestamp}`,
+                data: {
+                    key: keyA.id
+                }
+            };
+            return broker.call(serviceNameKeys  +  ".encrypt", params, opts).then(res => {
+                expect(res).toBeDefined();
+                encrypted = res;
+                broker.logger.info("Encrypted:", encrypted);
+            });
+            
+        });
+
+        it("it should decrypt an object", () => {
+            let params = {
+                token: `${serviceCalling}${timestamp}`,
+                data: encrypted
+            };
+            return broker.call(serviceNameKeys  +  ".decrypt", params, opts).then(res => {
+                expect(res).toBeDefined();
+                expect(res.key).toBeDefined();
+                expect(res.key).toEqual(keyA.id);
+            });
+            
+        });
+        
+        it("it should encrypt a string", () => {
+            let params = {
+                token: `${serviceCalling}${timestamp}`,
+                data: "This is a string..."
+            };
+            return broker.call(serviceNameKeys  +  ".encrypt", params, opts).then(res => {
+                expect(res).toBeDefined();
+                encrypted = res;
+                broker.logger.info("Encrypted:", encrypted);
+            });
+            
+        });
+
+        it("it should decrypt a string", () => {
+            let params = {
+                token: `${serviceCalling}${timestamp}`,
+                data: encrypted
+            };
+            return broker.call(serviceNameKeys  +  ".decrypt", params, opts).then(res => {
+                expect(res).toBeDefined();
+                expect(res).toEqual("This is a string...");
+            });
+            
+        });
+        
+        it("it should encrypt a boolean", () => {
+            let params = {
+                token: `${serviceCalling}${timestamp}`,
+                data: true
+            };
+            return broker.call(serviceNameKeys  +  ".encrypt", params, opts).then(res => {
+                expect(res).toBeDefined();
+                encrypted = res;
+                broker.logger.info("Encrypted:", encrypted);
+            });
+            
+        });
+
+        it("it should decrypt a boolean", () => {
+            let params = {
+                token: `${serviceCalling}${timestamp}`,
+                data: encrypted
+            };
+            return broker.call(serviceNameKeys  +  ".decrypt", params, opts).then(res => {
+                expect(res).toBeDefined();
+                expect(res).toEqual(true);
+            });
+            
+        });
+        
+        it("it should encrypt a number", () => {
+            let params = {
+                token: `${serviceCalling}${timestamp}`,
+                data: 19.123456
+            };
+            return broker.call(serviceNameKeys  +  ".encrypt", params, opts).then(res => {
+                expect(res).toBeDefined();
+                encrypted = res;
+                broker.logger.info("Encrypted:", encrypted);
+            });
+            
+        });
+
+        it("it should decrypt a number", () => {
+            let params = {
+                token: `${serviceCalling}${timestamp}`,
+                data: encrypted
+            };
+            return broker.call(serviceNameKeys  +  ".decrypt", params, opts).then(res => {
+                expect(res).toBeDefined();
+                expect(res).toEqual(19.123456);
+            });
+            
+        });
+        
     });
 
     describe("Test admin", () => {
